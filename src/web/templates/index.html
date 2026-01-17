@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SimpleEdgeGateway | Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        .status-badge { padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
+        .update-btn { padding: 0.3rem 1rem; margin-bottom: 0; }
+        input[type="number"] { margin-bottom: 0; display: inline-block; width: 120px; }
+    </style>
+</head>
+<body class="container">
+    <nav>
+        <ul>
+            <li><strong>SimpleEdgeGateway</strong></li>
+        </ul>
+        <ul>
+            <li><a href="/">ダッシュボード</a></li>
+            <li><a href="/hosts">PLC設定</a></li>
+        </ul>
+    </nav>
+
+    <header>
+        <hgroup>
+            <h1>SimpleEdgeGateway</h1>
+            <p>SQLite-centric Edge Monitoring System</p>
+        </hgroup>
+    </header>
+
+    <main>
+        <section>
+            <h2>ライブデータ監視</h2>
+            <figure>
+                <table role="grid">
+                    <thead>
+                        <tr>
+                            <th>タグ名</th>
+                            <th>現在値</th>
+                            <th>判定しきい値（編集）</th>
+                            <th>最終更新</th>
+                            <th>アクション</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td><strong>{{ item.tag_name }}</strong></td>
+                            <td>
+                                <mark>{{ item.last_value }}</mark>
+                            </td>
+                            <form action="/update_config" method="post">
+                                <td>
+                                    <input type="hidden" name="tag_name" value="{{ item.tag_name }}">
+                                    <input type="number" name="new_threshold" value="{{ item.threshold }}" step="0.1">
+                                </td>
+                                <td>{{ item.updated_at }}</td>
+                                <td>
+                                    <button type="submit" class="update-btn">設定更新</button>
+                                </td>
+                            </form>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </figure>
+        </section>
+    </main>
+
+    <footer class="container">
+        <small>Status: <span class="status-badge" style="background: #4caf50; color: white;">Online</span> | DB: gateway.db</small>
+    </footer>
+</body>
+</html>

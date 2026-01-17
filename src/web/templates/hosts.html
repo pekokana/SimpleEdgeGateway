@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>PLC Management | SimpleEdgeGateway</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</head>
+<body class="container">
+    <nav>
+        <ul><li><strong>SimpleEdgeGateway</strong></li></ul>
+        <ul>
+            <li><a href="/">ダッシュボード</a></li>
+            <li><a href="/hosts" class="secondary">PLC設定</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <h2>接続先PLC一覧</h2>
+        <table role="grid">
+            <thead>
+                <tr>
+                    <th>名称</th>
+                    <th>IPアドレス</th>
+                    <th>ポート</th>
+                    <th>ステータス</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for host in hosts %}
+                <tr>
+                    <td>{{ host.display_name }}</td>
+                    <td>{{ host.ip_address }}</td>
+                    <td>{{ host.port }}</td>
+                    <td><mark>{{ host.status }}</mark></td>
+                    <td>
+                        <div style="display: flex; gap: 10px;">
+                                <a href="/hosts/{{ host.id }}/items" class="button outline" style="padding: 2px 10px; font-size: 0.8rem;">
+                                    アイテム設定
+                                </a>
+                                
+                                <form action="/delete_host/{{ host.id }}" method="post" style="margin:0;">
+                                    <button type="submit" class="outline contrast" 
+                                            style="padding: 2px 10px; font-size: 0.8rem;"
+                                            onclick="return confirm('このPLCを削除してもよろしいですか？')">
+                                        削除
+                                    </button>
+                                </form>
+                        </div>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <hr>
+
+        <section>
+            <h3>新規PLC追加</h3>
+            <form action="/add_host" method="post">
+                <div class="grid">
+                    <input type="text" name="display_name" placeholder="PLC名称 (例: Line_A)" required>
+                    <input type="text" name="ip_address" placeholder="IPアドレス (例: 192.168.1.10)" required>
+                    <input type="number" name="port" value="502">
+                </div>
+                <button type="submit">PLCを登録</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

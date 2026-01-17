@@ -43,3 +43,9 @@ Thumbs.db
 # Runtime generated files
 # ===============================
 *.pid
+
+# ===============================
+# Other Tools
+# ===============================
+opttools/
+data/
