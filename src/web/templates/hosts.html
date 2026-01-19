@@ -4,66 +4,147 @@
     <meta charset="UTF-8">
     <title>PLC Management | SimpleEdgeGateway</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        :root { --spacing: 0.5rem; }
+        body { font-size: 0.9rem; }
+        
+        table th, table td { 
+            padding: 0.4rem 0.8rem; 
+            vertical-align: middle; 
+        }
+
+        /* ステータスバッジ */
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: white;
+            text-transform: uppercase;
+        }
+        .status-online { background-color: #2e7d32; }
+        .status-offline { background-color: #d32f2f; }
+        .status-unknown { background-color: #757575; }
+
+        .action-link {
+            text-decoration: none;
+            font-size: 0.75rem;
+            padding: 4px 8px;
+            border: 1px solid;
+            border-radius: 4px;
+        }
+
+        input, button { font-size: 0.85rem !important; }
+
+        /* モーダル内の微調整 */
+        dialog article { max-width: 500px; }
+    </style>
 </head>
 <body class="container">
     <nav>
         <ul><li><strong>SimpleEdgeGateway</strong></li></ul>
         <ul>
             <li><a href="/">ダッシュボード</a></li>
+            <li><a href="/alerts">アラート履歴</a></li>
             <li><a href="/hosts" class="secondary">PLC設定</a></li>
         </ul>
     </nav>
 
     <main>
-        <h2>接続先PLC一覧</h2>
-        <table role="grid">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+                <h2 style="margin: 0;">接続先PLC一覧</h2>
+                <small>{{ hosts|length }} 台のデバイスが登録済み</small>
+            </div>
+            <button class="contrast" onclick="openModal()" style="width: auto; padding: 0.5rem 1rem;">
+                ＋ 新規PLC追加
+            </button>
+        </header>
+
+        <table role="grid" class="compact-table">
             <thead>
                 <tr>
+                    <th style="width: 100px;">状態</th>
                     <th>名称</th>
                     <th>IPアドレス</th>
                     <th>ポート</th>
-                    <th>ステータス</th>
+                    <th style="text-align: right;">操作</th>
                 </tr>
             </thead>
             <tbody>
                 {% for host in hosts %}
                 <tr>
-                    <td>{{ host.display_name }}</td>
-                    <td>{{ host.ip_address }}</td>
-                    <td>{{ host.port }}</td>
-                    <td><mark>{{ host.status }}</mark></td>
                     <td>
-                        <div style="display: flex; gap: 10px;">
-                                <a href="/hosts/{{ host.id }}/items" class="button outline" style="padding: 2px 10px; font-size: 0.8rem;">
-                                    アイテム設定
-                                </a>
-                                
-                                <form action="/delete_host/{{ host.id }}" method="post" style="margin:0;">
-                                    <button type="submit" class="outline contrast" 
-                                            style="padding: 2px 10px; font-size: 0.8rem;"
-                                            onclick="return confirm('このPLCを削除してもよろしいですか？')">
-                                        削除
-                                    </button>
-                                </form>
+                        {% if host.status == 'Online' %}
+                            <span class="status-badge status-online">Online</span>
+                        {% elif host.status == 'Offline' %}
+                            <span class="status-badge status-offline">Offline</span>
+                        {% else %}
+                            <span class="status-badge status-unknown">{{ host.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td><strong>{{ host.display_name }}</strong></td>
+                    <td><code>{{ host.ip_address }}</code></td>
+                    <td>{{ host.port }}</td>
+                    <td>
+                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                            <a href="/hosts/{{ host.id }}/items" class="action-link">
+                                ⚙️ アイテム設定
+                            </a>
+                            <form action="/delete_host/{{ host.id }}" method="post" style="margin:0;">
+                                <button type="submit" class="outline contrast" 
+                                        style="padding: 4px 8px; font-size: 0.75rem; margin-bottom: 0;"
+                                        onclick="return confirm('このPLCを削除すると、紐づくアイテムも削除されます。よろしいですか？')">
+                                    削除
+                                </button>
+                            </form>
                         </div>
-                    </tr>
+                    </td>
+                </tr>
                 {% endfor %}
             </tbody>
         </table>
-
-        <hr>
-
-        <section>
-            <h3>新規PLC追加</h3>
-            <form action="/add_host" method="post">
-                <div class="grid">
-                    <input type="text" name="display_name" placeholder="PLC名称 (例: Line_A)" required>
-                    <input type="text" name="ip_address" placeholder="IPアドレス (例: 192.168.1.10)" required>
-                    <input type="number" name="port" value="502">
-                </div>
-                <button type="submit">PLCを登録</button>
-            </form>
-        </section>
     </main>
+
+    <dialog id="add-host-modal">
+        <article>
+            <header>
+                <a href="#close" aria-label="Close" class="close" onclick="closeModal()"></a>
+                新規PLCデバイス登録
+            </header>
+            <form action="/add_host" method="post" style="margin-bottom: 0;">
+                <label>PLC名称 (識別名)
+                    <input type="text" name="display_name" placeholder="例: エリアA_コンベア" required>
+                </label>
+                <div class="grid">
+                    <label>IPアドレス
+                        <input type="text" name="ip_address" placeholder="192.168.1.10" required>
+                    </label>
+                    <label>ポート番号
+                        <input type="number" name="port" value="502">
+                    </label>
+                </div>
+                <label>Unit ID (Slave ID)
+                    <input type="number" name="unit_id" value="1">
+                </label>
+                <footer style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="secondary" onclick="closeModal()" style="width: auto;">キャンセル</button>
+                    <button type="submit" style="width: auto;">デバイスを登録</button>
+                </footer>
+            </form>
+        </article>
+    </dialog>
+
+    <script>
+        const modal = document.getElementById('add-host-modal');
+        function openModal() { modal.setAttribute('open', 'true'); }
+        function closeModal() { modal.removeAttribute('open'); }
+
+        // 背景クリックで閉じる
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) closeModal();
+        });
+    </script>
 </body>
 </html>

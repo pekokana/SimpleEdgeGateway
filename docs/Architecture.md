@@ -1,9 +1,9 @@
 # SimpleEdgeGateway アーキテクチャ
 
-**Date:** 2026/01/16
+**Date:** 2026/01/19
 **Author:** Pekokana
 **Status:** Design Freeze
-**Version:** 1.0
+**Version:** 1.1
 ---
 
 ## 1. 概要
@@ -219,17 +219,17 @@ graph TB
 
 ### 核心機能（Core）
 
-* [ ] SQLite データベーススキーマ定義
-* [ ] Python コアエンジン・ループ実装
+* [X] SQLite データベーススキーマ定義
+* [X] Python コアエンジン・ループ実装
 * [ ] Config Watcher による設定の動的リロード
 
 ### 収集（Ingestion）
 
-* [ ] Modbus TCP クライアント実装
+* [X] Modbus TCP クライアント実装
 * [ ] Modbus RTU クライアント実装
 * [ ] Bulk Read (一括読出し) アルゴリズム
-* [ ] 通信エラー時の個別フォールバック・ロジック
-* [ ] ホスト死活監視（Host Alive Check）
+* [X] 通信エラー時の個別フォールバック・ロジック
+* [X] ホスト死活監視（Host Alive Check）
 
 ### 解析・保存（Processing & Storage）
 
@@ -239,18 +239,18 @@ graph TB
 
 ### 判定・通知（Trigger & Action）
 
-* [ ] 構造化トリガー判定エンジン（連続回数判定含む）
+* [X] 構造化トリガー判定エンジン（連続回数判定含む）
 * [ ] ヒステリシス復旧ロジック
-* [ ] イベントログ出力アクション
+* [X] イベントログ出力アクション
 * [ ] MQTT 送信アクション（未着手）
 * [ ] メール通知アクション（未着手）
 
 ### ユーザーインターフェース（Web UI）
 
-* [ ] 軽量Webサーバー（Flask または FastAPI）の選定・構築
-* [ ] 最新値一覧（Live Data）表示画面
+* [X] 軽量Webサーバー（Flask または FastAPI）の選定・構築
+* [X] 最新値一覧（Live Data）表示画面
 * [ ] イベント・アラーム履歴表示画面
-* [ ] 監視設定（Hosts/Items/Triggers）のGUI編集機能
+* [X] 監視設定（Hosts/Items/Triggers）のGUI編集機能
 
 ### 外部連携（SCADA Integration）
 

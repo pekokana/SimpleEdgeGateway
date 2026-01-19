@@ -1,9 +1,9 @@
 # SimpleEdgeGateway 実装ロードマップ
 
-**Date:** 2026/01/16
+**Date:** 2026/01/19
 **Author:** Pekokana
 **Status:** Planning / Execution Starts
-**Version:** 1.0
+**Version:** 1.1
 
 ---
 
@@ -21,43 +21,51 @@
 
 プロジェクトの土台となる部分です。
 
-* [ ] **環境構築**: `requirements.txt` の作成（PyYAML, Flask/FastAPI, pymodbus等）。
-* [ ] **ディレクトリ構成の作成**: `src/`, `config/`, `data/`, `logs/` の展開。
+* [x] **環境構築**: `requirements.txt` の作成（PyYAML, Flask/FastAPI, pymodbus等）。
+* [x] **ディレクトリ構成の作成**: `src/`, `config/`, `data/`, `logs/` の展開。
 * [ ] **設定管理 (`config_loader.py`)**: `config.yaml` を読み込むシングルトンクラスの実装。
-* [ ] **DBアクセス基盤 (`db_handler.py`)**: SQLiteの接続管理、WALモード設定、共通CRUD処理の実装。
-* [ ] **DB初期化スクリプト (`db_initializer.py`)**: スキーマ定義SQLの実行とサンプルデータの投入。
+* [x] **DBアクセス基盤 (`db_handler.py`)**: SQLiteの接続管理、WALモード設定、共通CRUD処理の実装。
+* [x] **DB初期化スクリプト (`db_initializer.py`)**: スキーマ定義SQLの実行とサンプルデータの投入。
 
 ### フェーズ 2: 収集・判定コアエンジン（モック）
 
 外部機器なしで、内部ロジックを完成させます。
 
-* [ ] **ダミー収集機 (`dummy_poller.py`)**: 乱数を用いて `items.last_value` を更新し、履歴に保存するループ。
-* [ ] **判定エンジン (`evaluator.py`)**: DBの最新値を監視し、確信度判定ロジック（`problem_count` / `recovery_count`）の実装。
-* [ ] **イベント記録**: 状態変化時に `events` テーブルへ書き込む機能の実装。
+* [x] **ダミー収集機 (`dummy_poller.py`)**: 乱数を用いて `items.last_value` を更新し、履歴に保存するループ。
+* [x] **判定エンジン (`evaluator.py`)**: DBの最新値を監視し、確信度判定ロジック（`problem_count` / `recovery_count`）の実装。
+* [X] **イベント記録**: 状態変化時に `events` テーブルへ書き込む機能の実装。
 
 ### フェーズ 3: Web UI 基礎
 
 可視化と設定変更のUIを構築します。
 
-* [ ] **Webサーバー基盤**: Flask/FastAPIによるサーバー起動。
-* [ ] **ダッシュボード画面**: 最新値キャッシュの一覧表示（データリフレッシュ機能）。
-* [ ] **設定変更画面**: ホストやアイテムの編集UIの実装。
+* [x] **Webサーバー基盤**: Flask/FastAPIによるサーバー起動。
+* [x] **ダッシュボード画面**: 最新値キャッシュの一覧表示（データリフレッシュ機能）。
+* [x] **設定変更画面**: ホストやアイテムの編集UIの実装。
 * [ ] **動的リロード機能 (`config_watcher.py`)**: UIでの変更を検知し、エンジンに通知する仕組み。
 
 ### フェーズ 4: Modbus通信と実機テスト
 
 実際の通信を実装し、製品レベルに引き上げます。
 
-* [ ] **Modbusエンジン (`modbus_poller.py`)**: `pymodbus` を用いたTCP/RTU通信の実装。
+* [x] **Modbusエンジン (`modbus_poller.py`)**: `pymodbus` を用いたTCP/RTU通信の実装。
 * [ ] **Bulk Read実装**: 同一周期・近接アドレスを一括で読み出す最適化ロジック。
-* [ ] **死活監視ロジック**: 通信エラー時のホストダウン判定。
+* [X] **死活監視ロジック**: 通信エラー時のホストダウン判定。
 * [ ] **ハウスキーパー**: `retention_days` に基づく古いデータの自動削除処理。
+
+### フェーズ 4.5: 運用の高度化（今回見えてきた課題）
+* [ ] **閾値変更への即時追従**: 周期無視の判定ロジック。
+* [ ] **Poller起動時のアラート状態復元**: `active` ログの辞書展開。
 
 ### フェーズ 5: 配布と安定化
 
 * [ ] **エラーハンドリング**: 通信断、DBロック、ログローテーションの強化。
 * [ ] **バイナリ化**: `PyInstaller` を用いた `.exe` および Linuxバイナリのビルド。
 * [ ] **OSサービス化**: Windows Service / systemd 登録手順のドキュメント化。
+
+* [ ] **DBロック（Database is locked）対策**: 現在 update_item_value 等で個別に接続していますが、書き込みが重なった際の busy_timeout 設定の追加。
+
+* [ ] **Modbus通信リトライ**: 通信が1回失敗しただけでOfflineにせず、3回連続失敗でOfflineとする「遊び」の実装。
 
 ---
 

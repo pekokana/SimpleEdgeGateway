@@ -5,15 +5,24 @@
     <title>アイテム設定 | {{ host.display_name }}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <style>
-        /* 入力欄をテーブルになじませるスタイル */
-        input[type="text"], input[type="number"] {
-            margin-bottom: 0;
-            padding: 5px;
+        :root { --spacing: 0.5rem; }
+        body { font-size: 0.85rem; }
+        
+        /* コンパクトなテーブル設定 */
+        table input, table select {
+            margin-bottom: 0 !important;
+            padding: 2px 5px !important;
+            height: auto !important;
+            font-size: 0.8rem !important;
         }
-        .action-buttons {
-            display: flex;
-            gap: 5px;
-        }
+        table th, table td { padding: 0.4rem 0.5rem; vertical-align: middle; }
+
+        /* 保存・削除ボタン */
+        .btn-save { padding: 2px 10px !important; font-size: 0.75rem !important; margin-bottom: 0; }
+        .btn-delete { padding: 2px 10px !important; font-size: 0.75rem !important; margin-bottom: 0; border-color: #d32f2f; color: #d32f2f; }
+
+        /* モーダル内のラベル調整 */
+        dialog article { max-width: 600px; width: 100%; }
     </style>
 </head>
 <body class="container">
@@ -21,45 +30,51 @@
         <ul><li><strong>SimpleEdgeGateway</strong></li></ul>
         <ul>
             <li><a href="/">ダッシュボード</a></li>
+            <li><a href="/alerts">アラート履歴</a></li>
             <li><a href="/hosts">PLC設定に戻る</a></li>
         </ul>
     </nav>
 
     <main>
-        <h2>アイテム管理: {{ host.display_name }}</h2>
-        <p>IP: {{ host.ip_address }}</p>
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+                <h2 style="margin-bottom: 0;">アイテム管理</h2>
+                <p style="margin-bottom: 0;"><mark>{{ host.display_name }}</mark> <code>{{ host.ip_address }}:{{ host.port }}</code></p>
+            </div>
+            <button class="contrast" onclick="openModal()" style="width: auto; padding: 0.5rem 1rem;">＋ 新規アイテム追加</button>
+        </header>
 
         <table role="grid">
             <thead>
                 <tr>
                     <th>タグ名</th>
-                    <th>Modbusアドレス</th>
-                    <th>最新値</th>
-                    <th>更新時間</th>
-                    <th>操作</th>
+                    <th style="width: 100px;">アドレス</th>
+                    <th style="width: 100px;">周期(秒)</th>
+                    <th style="width: 120px;">異常しきい値</th>
+                    <th style="width: 90px;">アラート</th>
+                    <th style="text-align: center;">アクション</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in items %}
                 <tr>
                     <form action="/hosts/{{ host.id }}/update_item/{{ item.id }}" method="post">
+                        <td><input type="text" name="tag_name" value="{{ item.tag_name }}" required></td>
+                        <td><input type="number" name="address" value="{{ item.address }}" required></td>
+                        <td><input type="number" name="polling_interval" value="{{ item.polling_interval }}" min="1"></td>
+                        <td><input type="number" name="alarm_threshold" value="{{ item.alarm_threshold }}"></td>
                         <td>
-                            <input type="text" name="tag_name" value="{{ item.tag_name }}" required>
+                            <select name="alarm_enabled">
+                                <option value="1" {% if item.alarm_enabled == 1 %}selected{% endif %}>ON</option>
+                                <option value="0" {% if item.alarm_enabled == 0 %}selected{% endif %}>OFF</option>
+                            </select>
                         </td>
                         <td>
-                            <input type="number" name="address" value="{{ item.address }}" required>
-                        </td>
-                        <td style="font-size: 0.9rem; color: #888;">{{ item.last_value }}</td>
-                        <td style="font-size: 0.8rem; color: #888;">{{ item.updated_at }}</td>
-                        <td>
-                            <div class="action-buttons">
-                                <button type="submit" class="outline" style="padding: 2px 10px; font-size: 0.8rem;">保存</button>
-                    </form> <form action="/hosts/{{ host.id }}/delete_item/{{ item.id }}" method="post" style="margin:0;">
-                                    <button type="submit" class="outline contrast" 
-                                            style="padding: 2px 10px; font-size: 0.8rem;"
-                                            onclick="return confirm('このアイテムを削除しますか？')">
-                                        削除
-                                    </button>
+                            <div style="display: flex; gap: 5px; justify-content: center;">
+                                <button type="submit" class="btn-save">保存</button>
+                    </form>
+                                <form action="/hosts/{{ host.id }}/delete_item/{{ item.id }}" method="post" style="margin:0;">
+                                    <button type="submit" class="btn-delete outline" onclick="return confirm('削除しますか？')">削除</button>
                                 </form>
                             </div>
                         </td>
@@ -67,23 +82,46 @@
                 {% endfor %}
             </tbody>
         </table>
+    </main>
 
-        <hr>
-
-        <section>
-            <h3>新規アイテム追加</h3>
+    <dialog id="add-item-modal">
+        <article>
+            <header>
+                <a href="#close" aria-label="Close" class="close" onclick="closeModal()"></a>
+                新規アイテム登録
+            </header>
             <form action="/hosts/{{ host.id }}/add_item" method="post">
+                <label>タグ名
+                    <input type="text" name="tag_name" placeholder="Motor_Speed" required>
+                </label>
                 <div class="grid">
-                    <label>タグ名
-                        <input type="text" name="tag_name" placeholder="例: Motor_Speed" required>
+                    <label>アドレス
+                        <input type="number" name="address" placeholder="40001" required>
                     </label>
-                    <label>アドレス (保持レジスタ)
-                        <input type="number" name="address" placeholder="例: 0" required>
+                    <label>周期(秒)
+                        <input type="number" name="polling_interval" placeholder="5" min="1">
                     </label>
                 </div>
-                <button type="submit">アイテムを登録</button>
+                <label>異常しきい値
+                    <input type="number" name="alarm_threshold" placeholder="100">
+                </label>
+                <footer style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="secondary" onclick="closeModal()" style="width: auto;">キャンセル</button>
+                    <button type="submit" style="width: auto;">登録する</button>
+                </footer>
             </form>
-        </section>
-    </main>
+        </article>
+    </dialog>
+
+    <script>
+        const modal = document.getElementById('add-item-modal');
+        function openModal() { modal.setAttribute('open', 'true'); }
+        function closeModal() { modal.removeAttribute('open'); }
+        
+        // モーダルの外側をクリックしたら閉じる設定
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) closeModal();
+        });
+    </script>
 </body>
 </html>

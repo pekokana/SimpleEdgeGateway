@@ -1,0 +1,7 @@
+system:
+  db_path: "data/gateway.sqlite"
+  log_level: "INFO"
+
+polling:
+  interval_seconds: 1  # 全体的な収集サイクル
+  timeout: 2.0        # Modbus通信のタイムアウト

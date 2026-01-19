@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>アラート履歴 | SimpleEdgeGateway</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .status-active { background-color: #d32f2f; color: white; }
+        .status-resolved { background-color: #2e7d32; color: white; }
+        table th, table td { font-size: 0.85rem; padding: 0.5rem; }
+    </style>
+</head>
+<body class="container">
+    <nav>
+        <ul><li><strong>SimpleEdgeGateway</strong></li></ul>
+        <ul>
+            <li><a href="/">ダッシュボード</a></li>
+            <li><a href="/alerts">アラート履歴</a></li>
+            <li><a href="/hosts">PLC設定</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <h3>アラート履歴 (最新50件)</h3>
+        <table role="grid">
+            <thead>
+                <tr>
+                    <th>ステータス</th>
+                    <th>発生時刻</th>
+                    <th>復旧時刻</th>
+                    <th>ホスト</th>
+                    <th>タグ名</th>
+                    <th>発生時の値</th>
+                    <th>しきい値</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in alerts %}
+                <tr>
+                    <td>
+                        {% if alert.status == 'active' %}
+                        <span class="status-badge status-active">継続中</span>
+                        {% else %}
+                        <span class="status-badge status-resolved">復旧済</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ alert.start_time }}</td>
+                    <td>{{ alert.end_time or '-' }}</td>
+                    <td>{{ alert.host_name }}</td>
+                    <td><code>{{ alert.tag_name }}</code></td>
+                    <td style="font-weight: bold;">{{ alert.trigger_value }}</td>
+                    <td><small>>= {{ alert.threshold_value }}</small></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+</body>
+</html>
