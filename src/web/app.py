@@ -5,9 +5,17 @@ from fastapi.responses import HTMLResponse
 import aiosqlite
 import os
 
+# from src.web import api_v1
+from src.web import api_v1
+
 app = FastAPI()
+app.include_router(api_v1.router)
 templates = Jinja2Templates(directory="src/web/templates")
-DB_PATH = "data/gateway.sqlite"
+
+from src.common.config_loader import config
+
+# DBパスをconfigから取得
+DB_PATH = config.db_path
 
 @app.get("/")
 async def index(request: Request):
@@ -124,8 +132,14 @@ async def update_item(
 async def get_dashboard_fragment(request: Request):
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
+        # SQLで履歴データも取得
         cursor = await db.execute("""
-            SELECT items.*, hosts.display_name as host_name, hosts.status as host_status
+            SELECT items.*, hosts.display_name as host_name, hosts.status as host_status,
+            (SELECT GROUP_CONCAT(value) FROM (
+                SELECT value FROM history 
+                WHERE item_id = items.id 
+                ORDER BY timestamp DESC LIMIT 10
+            )) as recent_values
             FROM items 
             JOIN hosts ON items.host_id = hosts.id
             ORDER BY hosts.display_name, items.tag_name
@@ -136,29 +150,35 @@ async def get_dashboard_fragment(request: Request):
     <table role="grid" class="compact-table">
         <thead>
             <tr>
-                <th style="width: 100px;">状態</th>
+                <th style="width: 80px;">状態</th>
                 <th>ホスト名</th>
                 <th>タグ名</th>
                 <th style="text-align: center;">最新値</th>
                 <th>アラート設定</th>
                 <th>周期</th>
+                <th style="width: 120px; text-align: center;">トレンド</th>
                 <th>最終更新</th>
+                <th>操作</th>
             </tr>
         </thead>
         <tbody>
     """
     
     for item in items:
+        # --- 変数の定義開始 ---
         val = item['last_value'] if item['last_value'] is not None else "--"
         alarm_enabled = item['alarm_enabled'] == 1
         threshold = item['alarm_threshold']
         
-        # アラーム判定（設定がONの時のみ判定）
+        # アラーム判定
         is_alarm = (alarm_enabled and 
                     item['last_value'] is not None and 
                     item['last_value'] >= threshold)
         
         host_offline = item['host_status'] == 'Offline'
+        
+        # row_class の定義 (これが漏れていました)
+        row_class = "row-alarm" if is_alarm else ""
         
         # 状態ラベル
         if host_offline:
@@ -168,15 +188,16 @@ async def get_dashboard_fragment(request: Request):
         else:
             status_label = '<span class="badge normal">正常</span>'
 
-        # アラート設定の表示（ON/OFF）
+        # アラート設定とスタイル
         if alarm_enabled:
             alert_cfg_html = f'<span style="color: var(--primary); font-size: 0.8rem;">🔔 ON (>= {threshold})</span>'
             val_style = "font-size: 1.2rem; color: var(--h1-color);"
         else:
             alert_cfg_html = '<span style="color: #666; font-size: 0.8rem;">🔕 OFF</span>'
-            val_style = "font-size: 1.2rem; color: #666; opacity: 0.5;" # 設定OFFなら値を薄くする
+            val_style = "font-size: 1.2rem; color: #666; opacity: 0.5;"
 
-        row_class = "row-alarm" if is_alarm else ""
+        history_data = item['recent_values'] or ""
+        # --- 変数の定義終了 ---
 
         html += f"""
         <tr class="{row_class}">
@@ -188,7 +209,20 @@ async def get_dashboard_fragment(request: Request):
             </td>
             <td>{alert_cfg_html}</td>
             <td><small>{item['polling_interval']}s</small></td>
+            
+            <td style="vertical-align: middle; text-align: center; background: rgba(255,255,255,0.05);">
+                <canvas class="sparkline-canvas" 
+                        data-values="{history_data}" 
+                        width="100" height="25"></canvas>
+            </td>
+
             <td><small>{item['updated_at'] or '-'}</small></td>
+            <td>
+                <a href="/items/{item['id']}/history" role="button" class="outline secondary" 
+                   style="font-size: 0.7rem; padding: 2px 8px; margin-bottom: 0;">
+                    📈 履歴
+                </a>
+            </td>
         </tr>
         """
     
@@ -263,3 +297,66 @@ async def update_item(
         await db.commit()
     return RedirectResponse(url=f"/hosts/{host_id}/items", status_code=303)
 
+@app.get("/history/{tag_name}")
+async def get_item_history(tag_name: str, hours: int = 24):
+    """SCADA向け：特定タグの過去履歴を取得"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        
+        # 1. まずtag_nameからitem_idを特定
+        cursor = await db.execute("SELECT id FROM items WHERE tag_name = ?", (tag_name,))
+        item = await cursor.fetchone()
+        if not item:
+            return {"error": f"Tag '{tag_name}' not found"}, 404
+            
+        # 2. 指定された時間分の履歴を取得
+        cursor = await db.execute("""
+            SELECT timestamp, value 
+            FROM history 
+            WHERE item_id = ? 
+              AND timestamp >= DATETIME('now', 'localtime', ?)
+            ORDER BY timestamp ASC
+        """, (item["id"], f"-{hours} hours"))
+        
+        rows = await cursor.fetchall()
+        
+        # SCADAのグラフライブラリ(Chart.js等)が扱いやすい形式に整形
+        values = [[row["timestamp"], row["value"]] for row in rows]
+        
+        return {
+            "tag": tag_name,
+            "count": len(values),
+            "values": values
+        }
+
+@app.get("/items/{item_id}/history")
+async def item_history_view(request: Request, item_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        
+        # 1. アイテム名とホスト名を取得（画面のタイトル用）
+        cursor = await db.execute("""
+            SELECT i.*, h.display_name as host_name 
+            FROM items i JOIN hosts h ON i.host_id = h.id 
+            WHERE i.id = ?
+        """, (item_id,))
+        item = await cursor.fetchone()
+        
+        if not item:
+            return HTMLResponse(content="Item not found", status_code=404)
+
+        # 2. 直近50件の履歴を取得
+        cursor = await db.execute("""
+            SELECT value, timestamp 
+            FROM history 
+            WHERE item_id = ? 
+            ORDER BY timestamp DESC 
+            LIMIT 50
+        """, (item_id,))
+        history = await cursor.fetchall()
+        
+    return templates.TemplateResponse("history_detail.html", {
+        "request": request,
+        "item": item,
+        "history": history
+    })

@@ -45,7 +45,7 @@ def init_db():
 
     # --- 3. event_logsテーブルの作成 ---
     cursor.execute("""
-    CREATE TABLE event_logs (
+    CREATE TABLE IF NOT EXISTS event_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         item_id INTEGER,          -- どのタグか
         start_time DATETIME,      -- 発生時刻
@@ -56,6 +56,21 @@ def init_db():
     )
     """)
 
+    # --- 4. historyテーブルの作成 ---
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER NOT NULL,
+            value REAL,
+            timestamp DATETIME DEFAULT (DATETIME('now', 'localtime')),
+            FOREIGN KEY (item_id) REFERENCES items(id)
+        )
+    """)
+    # -- 検索を速くするためのインデックス
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_history_item_id_timestamp ON history(item_id, timestamp)
+    """)
+                   
     # --- X. マイグレーション：既存テーブルへのカラム追加チェック ---
     cursor.execute("PRAGMA table_info(items)")
     columns = [row[1] for row in cursor.fetchall()]

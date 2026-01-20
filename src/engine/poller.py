@@ -110,14 +110,6 @@ class ModbusPoller:
             await asyncio.sleep(1)
 
 
-    async def update_item_value(self, item_id, val):
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.execute(
-                "UPDATE items SET last_value = ?, updated_at = datetime('now', 'localtime') WHERE id = ?",
-                (val, item_id)
-            )
-            await db.commit()
-
     async def create_event_log(self, item_id, val, threshold):
         async with aiosqlite.connect(DB_PATH) as db:
             cursor = await db.execute(
@@ -147,6 +139,30 @@ class ModbusPoller:
             
         tasks = [self.poll_host(h) for h in hosts]
         await asyncio.gather(*tasks)
+
+    async def update_item_value(self, item_id, new_value):
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            
+            # 1. DBから現在の値(前回保存された値)を取得
+            cursor = await db.execute("SELECT last_value FROM items WHERE id = ?", (item_id,))
+            row = await cursor.fetchone()
+            
+            # 前回値と異なる場合のみ履歴(history)に保存
+            if row is None or row["last_value"] != new_value:
+                # 履歴テーブルへ挿入
+                await db.execute(
+                    "INSERT INTO history (item_id, value) VALUES (?, ?)",
+                    (item_id, new_value)
+                )
+                # print(f"DEBUG: Value changed. History saved for Item ID {item_id}: {new_value}")
+
+            # 最新値の更新（これは変化に関わらず、時刻を更新するために毎回行うのが一般的）
+            await db.execute(
+                "UPDATE items SET last_value = ?, updated_at = DATETIME('now', 'localtime') WHERE id = ?",
+                (new_value, item_id)
+            )
+            await db.commit()
 
 if __name__ == "__main__":
     poller = ModbusPoller()

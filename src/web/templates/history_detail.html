@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ item.tag_name }} 履歴 | SimpleEdgeGateway</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        .container { margin-top: 2rem; }
+        .header-box { margin-bottom: 2rem; border-bottom: 1px solid #333; padding-bottom: 1rem; }
+        .history-table th, .history-table td { font-size: 0.9rem; }
+        code { color: var(--primary); }
+    </style>
+
+</head>
+<body class="container">
+    <nav>
+        <ul><li><strong>SimpleEdgeGateway</strong></li></ul>
+        <ul>
+            <li><a href="/" role="button" class="outline">← ダッシュボードへ戻る</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <div class="header-box">
+            <hgroup>
+                <h1>履歴詳細: <code>{{ item.tag_name }}</code></h1>
+                <p>ホスト: <strong>{{ item.host_name }}</strong> | Modbusアドレス: <code>{{ item.address }}</code></p>
+            </hgroup>
+        </div>
+
+        <div class="grid">
+            <section>
+                <figure>
+                    <table role="grid" class="history-table">
+                        <thead>
+                            <tr>
+                                <th>日時 (Timestamp)</th>
+                                <th style="text-align: right;">値 (Value)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in history %}
+                            <tr>
+                                <td>{{ row.timestamp }}</td>
+                                <td style="text-align: right;"><strong>{{ row.value }}</strong></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="2" style="text-align: center;">まだ履歴データがありません。</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </figure>
+            </section>
+
+            <section>
+                <article>
+                    <header>トレンドグラフ (直近50件)</header>
+                    <div style="height: 300px;">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                </article>
+
+                <div class="grid">
+                    <article style="padding: 1rem; text-align: center;">
+                        <small>最大値</small><br>
+                        <strong id="stat-max">-</strong>
+                    </article>
+                    <article style="padding: 1rem; text-align: center;">
+                        <small>最小値</small><br>
+                        <strong id="stat-min">-</strong>
+                    </article>
+                </div>
+            </section>
+        </div>
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Pythonから渡された history (Rowオブジェクトのリスト) をJS配列に変換
+        // Jinja2のテンプレート展開を利用します
+        const rawHistory = [
+            {% for row in history | reverse %}
+            { t: "{{ row.timestamp }}", v: {{ row.value }} },
+            {% endfor %}
+        ];
+
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        
+        // 統計情報の計算
+        const vals = rawHistory.map(h => h.v);
+        if (vals.length > 0) {
+            document.getElementById('stat-max').innerText = Math.max(...vals);
+            document.getElementById('stat-min').innerText = Math.min(...vals);
+        }
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: rawHistory.map(h => h.t.split(' ')[1]), // 時刻部分だけ表示
+                datasets: [{
+                    label: '{{ item.tag_name }}',
+                    data: vals,
+                    borderColor: '#10ad9c',
+                    backgroundColor: 'rgba(16, 173, 156, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
