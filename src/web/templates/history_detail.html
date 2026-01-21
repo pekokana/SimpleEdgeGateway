@@ -9,6 +9,20 @@
         .header-box { margin-bottom: 2rem; border-bottom: 1px solid #333; padding-bottom: 1rem; }
         .history-table th, .history-table td { font-size: 0.9rem; }
         code { color: var(--primary); }
+
+        /* 左右の余白をなくし、全幅を使う設定 */
+        body.container {
+            max-width: 100% !important;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+
+        /* 既存のスタイル ... */
+        .compact-table th, .compact-table td {
+            padding: 0.4rem; /* さらに少しコンパクトに */
+            white-space: nowrap; /* 折り返し防止 */
+        }
+
     </style>
 
 </head>

@@ -136,12 +136,52 @@
             <li><a href="/">ダッシュボード</a></li>
             <li><a href="/alerts">アラート履歴</a></li>
             <li><a href="/hosts">PLC設定</a></li>
+            <li><a href="/api_docs" class="secondary">API仕様</a></li>
+            <li><a href="/settings">機能設定</a></li>
         </ul>
     </nav>
 
-    <main class="container-fluid"> <h3>監視ダッシュボード</h3>
 
-        <div id="dashboard-content" hx-get="/api/dashboard_fragment" hx-trigger="load, every 2s">
+    <main class="container-fluid">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>監視ダッシュボード</h3>
+            <small id="last-update" style="color: #888;">更新中...</small>
+        </div>
+
+        <div class="grid">
+            <div>
+                <label for="host_filter">ホスト絞り込み</label>
+                <select id="host_filter" name="host_filter" hx-get="/api/dashboard_fragment" hx-target="#dashboard-content" hx-trigger="change">
+                    <option value="">すべて</option>
+                    <option value="LARGE_PLC_01">LARGE_PLC_01</option>
+                    <option value="LARGE_PLC_02">LARGE_PLC_02</option>
+                    <option value="LARGE_PLC_03">LARGE_PLC_03</option>
+                    <option value="LARGE_PLC_04">LARGE_PLC_04</option>
+                </select>
+            </div>
+            <div>
+                <label for="search">タグ名検索</label>
+                <input type="search" id="search" name="search" placeholder="Tag name..." 
+                    hx-get="/api/dashboard_fragment" hx-target="#dashboard-content" hx-trigger="keyup changed delay:300ms">
+            </div>
+            <div style="display: flex; align-items: center; gap: 20px; padding-top: 30px;">
+                <label>
+                    <input type="checkbox" id="only_positive" name="only_positive" role="switch"
+                        hx-get="/api/dashboard_fragment" hx-target="#dashboard-content" hx-trigger="change">
+                    値 > 0
+                </label>
+                <label>
+                    <input type="checkbox" id="only_alarm" name="only_alarm" role="switch"
+                        hx-get="/api/dashboard_fragment" hx-target="#dashboard-content" hx-trigger="change">
+                    異常のみ
+                </label>
+            </div>
+        </div>
+
+        <div id="dashboard-content" 
+            hx-get="/api/dashboard_fragment" 
+            hx-include="#host_filter, #search, #only_positive, #only_alarm" 
+            hx-trigger="load, every 2s">
             <p>読み込み中...</p>
         </div>
     </main>

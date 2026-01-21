@@ -76,7 +76,8 @@ class ModbusPoller:
                 
                 # --- デバッグポイント1: アイテムが取得できているか ---
                 items = await self.fetch_target_items(host_id, list(active_alarms.keys()))
-                # print(f"DEBUG: 監視対象アイテム数: {len(items)} 件 (全アイテム数ではなく、今更新すべき件数)")
+
+                poll_results = [] # 今回の更新分を溜めるリスト
 
                 for item in items:
                     item_id = item['id']
@@ -85,8 +86,10 @@ class ModbusPoller:
                     # print(f"DEBUG: 読み出し実行 - Tag: {item['tag_name']}, Address: {item['address']}, Value: {val}")
                     
                     if val is not None:
-                        await self.update_item_value(item_id, val)
-                        
+                        # await self.update_item_value(item_id, val)
+                        # 後の履歴判定のために前回値(last_value)も一緒にリストへ
+                        poll_results.append((item['id'], val, item['last_value']))
+
                         # アラート判定
                         threshold = item['alarm_threshold']
                         enabled = item['alarm_enabled']
@@ -102,6 +105,10 @@ class ModbusPoller:
                             print(f"✅ ALARM RESOLVED: {item['tag_name']}")
                     else:
                         print(f"DEBUG: {item['tag_name']} の読み出しが None です")
+
+                # 1台分のループが終わったら「一括」でDBに書き込む
+                await self.update_items_bulk(poll_results)
+                # print(f"DEBUG: {host_name} - {len(poll_results)}件を更新しました")                
 
             except Exception as e:
                 print(f"SYSTEM ERROR: {e}")
@@ -164,9 +171,38 @@ class ModbusPoller:
             )
             await db.commit()
 
-if __name__ == "__main__":
+    async def update_items_bulk(self, results):
+        """
+        results: [(item_id, val, old_val), ...] のリスト
+        """
+        if not results:
+            return
+
+        async with aiosqlite.connect(DB_PATH) as db:
+            # 高速化のための設定
+            await db.execute("PRAGMA journal_mode=WAL") # WALモードを有効化
+            await db.execute("PRAGMA synchronous=NORMAL")
+
+            for item_id, new_value, old_value in results:
+                # 値が変化した時のみ履歴へ
+                if old_value != new_value:
+                    await db.execute(
+                        "INSERT INTO history (item_id, value) VALUES (?, ?)",
+                        (item_id, new_value)
+                    )
+                # 最新値の更新
+                await db.execute(
+                    "UPDATE items SET last_value = ?, updated_at = DATETIME('now', 'localtime') WHERE id = ?",
+                    (new_value, item_id)
+                )
+            await db.commit()
+
+def main():
     poller = ModbusPoller()
     try:
         asyncio.run(poller.run())
     except KeyboardInterrupt:
         poller.running = False
+
+if __name__ == "__main__":
+    main()

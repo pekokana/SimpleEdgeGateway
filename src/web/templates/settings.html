@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Settings | SimpleEdgeGateway</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        /* 縦方向の区切りを明確にするスタイル */
+        .setting-group {
+            margin-bottom: 3rem;
+            border-bottom: 1px solid #444;
+            padding-bottom: 2rem;
+        }
+        .setting-group:last-child {
+            border-bottom: none;
+        }
+        .function-name {
+            display: block;
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+        .description {
+            margin-bottom: 1.5rem;
+            color: #ccc;
+        }
+    </style>
+</head>
+<body class="container">
+    <nav>
+        <ul><li><strong>SimpleEdgeGateway</strong></li></ul>
+        <ul>
+            <li><a href="/">ダッシュボード</a></li>
+            <li><a href="/hosts">PLC設定</a></li>
+            <li><a href="/settings">設定管理</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <h2>設定管理</h2>
+
+        <div id="message-banner"></div>
+
+        <section class="setting-group">
+            <span class="function-name">■ 設定のエクスポート</span>
+            <div class="description">
+                現在の全てのPLC接続設定、および監視アイテムの定義（タグ、アドレス、閾値等）をYAML形式のファイルとしてバックアップします。
+            </div>
+            <a href="/settings/export/yaml" role="button" class="contrast">YAMLファイルをダウンロード</a>
+        </section>
+
+        <section class="setting-group">
+            <span class="function-name">■ 設定のインポート</span>
+            <div class="description">
+                YAMLファイルをアップロードして、PLCと監視アイテムを一括で取り込みます。
+                重複するタグ名がある場合は、ファイルの内容で上書き（UPSERT）されます。
+            </div>
+            <form id="import-form" action="/settings/import/yaml" method="post" enctype="multipart/form-data">
+                <input type="file" id="file" name="file" accept=".yaml,.yml" required>
+                
+                <label for="overwrite_all">
+                    <input type="checkbox" id="overwrite_all" name="overwrite_all" value="true">
+                    <strong>既存データをすべて削除して初期化する</strong>
+                    <br><small>※チェックを入れると、現在の設定と過去の全履歴が完全に削除されます。</small>
+                </label>
+
+                <button type="submit" id="submit-btn" class="secondary">設定ファイルをアップロードして適用</button>
+            </form>
+        </section>
+
+        <section class="setting-group">
+            <span class="function-name">■ YAML記述リファレンス</span>
+            <details>
+                <summary>インポート用YAMLの正しい構造を確認する</summary>
+<pre><code>hosts:
+  - display_name: "PLC-A"
+    ip_address: "192.168.1.10"
+    port: 502
+    items:
+      - tag_name: "Temperature"
+        address: 100
+        alarm_threshold: 50.0
+        polling_interval: 10</code></pre>
+            </details>
+        </section>
+    </main>
+
+    <script>
+        // インポート完了時のバナー表示
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('msg') === 'success') {
+            const h = params.get('h');
+            const i = params.get('i');
+            const banner = document.getElementById('message-banner');
+            banner.innerHTML = `
+                <div style="background: #1a3321; color: #4cd964; border: 1px solid #2d5a3a; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+                    ✅ 正常に完了しました。 (処理対象: ${h} ホスト / ${i} アイテム)
+                </div>
+            `;
+            setTimeout(() => { banner.style.display = 'none'; }, 5000);
+        }
+
+        // 送信時のビジー表示
+        const importForm = document.getElementById('import-form');
+        const submitBtn = document.getElementById('submit-btn');
+        importForm.onsubmit = function() {
+            submitBtn.setAttribute("aria-busy", "true");
+            submitBtn.innerText = "インポート中...";
+            submitBtn.classList.add("secondary");
+        };
+    </script>
+</body>
+</html>

@@ -13,3 +13,19 @@ dependencies = [
     "pyyaml>=6.0.3",
     "uvicorn>=0.40.0",
 ]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.uv]
+package = true
+
+[project.scripts]
+web-gui = "src.web.webmain:main"
+poller = "src.engine.poller:main"
+dbinit = "src.common.db_handler:init_db"

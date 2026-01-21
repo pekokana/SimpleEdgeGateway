@@ -14,6 +14,20 @@
         .status-active { background-color: #d32f2f; color: white; }
         .status-resolved { background-color: #2e7d32; color: white; }
         table th, table td { font-size: 0.85rem; padding: 0.5rem; }
+
+        /* 左右の余白をなくし、全幅を使う設定 */
+        body.container {
+            max-width: 100% !important;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+
+        /* 既存のスタイル ... */
+        .compact-table th, .compact-table td {
+            padding: 0.4rem; /* さらに少しコンパクトに */
+            white-space: nowrap; /* 折り返し防止 */
+        }
+
     </style>
 </head>
 <body class="container">

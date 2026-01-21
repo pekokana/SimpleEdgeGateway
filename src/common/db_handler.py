@@ -52,7 +52,9 @@ def init_db():
         end_time DATETIME,        -- 復旧時刻（発生時はNULL）
         trigger_value REAL,       -- 発生時の値
         threshold_value REAL,     -- その時のしきい値
-        status TEXT               -- 'active' (継続中) or 'resolved' (復旧済み)
+        status TEXT,              -- 'active' (継続中) or 'resolved' (復旧済み)
+        acked_at TEXT,            -- 外部確認時点
+        acked_by TEXT             -- 外部確認者
     )
     """)
 
@@ -71,10 +73,9 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_history_item_id_timestamp ON history(item_id, timestamp)
     """)
                    
-    # --- X. マイグレーション：既存テーブルへのカラム追加チェック ---
+    # --- X1. マイグレーション：アイテムテーブルへのカラム追加チェック ---
     cursor.execute("PRAGMA table_info(items)")
     columns = [row[1] for row in cursor.fetchall()]
-
     # 必要カラムのチェックと追加
     migrations = [
         ("host_id", "INTEGER DEFAULT 1"),
@@ -83,11 +84,24 @@ def init_db():
         ("alarm_enabled", "INTEGER DEFAULT 0"),  # 0=無効, 1=有効
         ("polling_interval", "INTEGER DEFAULT 5")
     ]
-
     for col_name, col_type in migrations:
         if col_name not in columns:
             print(f"Adding {col_name} column to items table...")
             cursor.execute(f"ALTER TABLE items ADD COLUMN {col_name} {col_type}")
+
+    # --- X2. マイグレーション：イベントログテーブルへのカラム追加チェック ---
+    cursor.execute("PRAGMA table_info(event_logs)")
+    columns = [row[1] for row in cursor.fetchall()]
+    # 必要カラムのチェックと追加
+    migrations = [
+        ("acked_at", "TEXT"),
+        ("acked_by", "TEXT")
+    ]
+
+    for col_name, col_type in migrations:
+        if col_name not in columns:
+            print(f"Adding {col_name} column to event_logs table...")
+            cursor.execute(f"ALTER TABLE event_logs ADD COLUMN {col_name} {col_type}")
 
     conn.commit()
     conn.close()

@@ -1,5 +1,9 @@
 system:
   db_path: "data/gateway.sqlite"
+  retention_minutes: 5  # 例：3時間分(180分)だけ保持する
+  web_host: 127.0.0.1
+  web_port: 8080
+  web_reload: True
   log_level: "INFO"
 
 polling:

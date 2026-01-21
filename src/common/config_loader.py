@@ -28,6 +28,31 @@ class Config:
     @property
     def polling_interval(self):
         return self._data["polling"]["interval_seconds"]
+    
+    @property
+    def retention_minutes(self):
+        return self._data["system"]["retention_minutes"]
+    
+    @property
+    def web_port(self):
+        return self._data["system"]["web_port"]
+
+    @property
+    def web_host(self):
+        return self._data["system"]["web_host"]
+
+    @property
+    def web_reload(self):
+        return self._data["system"]["web_reload"]
+
+    @property
+    def log_level(self):
+        return self._data["system"]["log_level"]
+
+    @property
+    def polling_timeout(self):
+        return self._data["polling"]["timeout"]
+
 
 # どこからでも import config で使えるようにインスタンス化しておく
 config = Config()

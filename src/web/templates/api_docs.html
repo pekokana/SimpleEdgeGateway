@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>API Docs | SimpleEdgeGateway</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <style>
+        :root { 
+            --code-bg: #1e1e1e; 
+            --accent-get: #2e7d32; 
+            /* 文字色を明示的に定義 */
+            --text-main: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --card-bg: #21262d; /* 少し明るいグレーへ */
+        }
+        body { font-size: 0.9rem; color: var(--text-main); }
+        
+        /* サイドバー固定レイアウト */
+        .api-container { display: grid; grid-template-columns: 250px 1fr; gap: 2rem; margin-top: 2rem; }
+        aside nav ul { flex-direction: column; align-items: flex-start; }
+        
+        /* エンドポイントのスタイル */
+        .api-card { 
+            border: 1px solid #444; 
+            border-radius: 8px; 
+            margin-bottom: 2rem; 
+            overflow: hidden; 
+            background: var(--card-bg); 
+        }
+        .api-header { 
+            padding: 0.5rem 1rem; 
+            background: #2d333b; 
+            border-bottom: 1px solid #444; 
+            display: flex; 
+            align-items: center; 
+        }
+        .method { font-size: 0.7rem; font-weight: bold; padding: 2px 8px; border-radius: 4px; margin-right: 12px; color: white; }
+        .get { background: var(--accent-get); }
+        .endpoint { font-family: 'Fira Code', monospace; color: #5ccfe6; font-weight: 600; } /* 青色で強調 */
+        
+        .api-body { padding: 1.5rem; color: var(--text-main); }
+        .api-body p { color: var(--text-main); }
+        .section-title { font-size: 0.75rem; color: #f29e74; text-transform: uppercase; letter-spacing: 1px; margin: 1.5rem 0 0.5rem; font-weight: bold; }
+        
+        /* コードブロック */
+        pre { background: var(--code-bg); padding: 1rem; border-radius: 4px; border: 1px solid #444; overflow-x: auto; }
+        pre code { color: #d19a66; font-family: 'Fira Code', monospace; }
+        
+        /* テーブルの視認性向上 */
+        table.params { font-size: 0.85rem; margin-bottom: 0; background: transparent; }
+        table.params th { color: #888; border-bottom: 2px solid #444; }
+        table.params td { color: var(--text-main); border-bottom: 1px solid #333; }
+        table.params code { background: #333; color: #e0e0e0; padding: 2px 5px; }
+
+        .sticky-aside { position: sticky; top: 20px; }
+        a.secondary { color: var(--text-muted); }
+    </style>
+</head>
+<body class="container-fluid">
+    <nav>
+        <ul><li><strong>SimpleEdgeGateway</strong></li></ul>
+        <ul>
+            <li><a href="/">ダッシュボード</a></li>
+            <li><a href="/alerts">アラート履歴</a></li>
+            <li><a href="/hosts">PLC設定</a></li>
+            <li><a href="/api_docs" class="secondary">API仕様</a></li>
+            <li><a href="/settings">機能設定</a></li>
+        </ul>
+    </nav>
+
+    <div class="container api-container">
+        <aside>
+            <div class="sticky-aside">
+                <nav>
+                    <ul style="font-size: 0.8rem;">
+                        <li><label>Data Access</label></li>
+                        <li><a href="#get-history">/history/{tag}</a></li>
+                        <li><a href="#get-dashboard">/dashboard_fragment</a></li>
+                        <li><hr></li>
+                        <li><label>Admin</label></li>
+                        <li><a href="/docs" target="_blank">Swagger Full Spec</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </aside>
+
+        <main>
+            <section id="get-latest" class="api-card">
+                <div class="api-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/v1/latest</span>
+                </div>
+                <div class="api-body">
+                    <p>全タグの最新値を一括で取得します。SCADAや外部ダッシュボードの定周期ポーリングに最適です。</p>
+                    <div class="section-title">Response Example</div>
+                    <pre><code>{
+        "timestamp": "2026-01-21T20:45:00",
+        "data": [
+            { "tag": "TEMP_01", "value": 25.4, "host": "PLC_01", "updated_at": "..." }
+        ]
+        }</code></pre>
+                </div>
+            </section>
+
+            <section id="get-history" class="api-card">
+                <div class="api-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/v1/history/{tag_name}</span>
+                </div>
+                <div class="api-body">
+                    <p>特定タグの過去履歴をJSONで取得します。グラフ描画やレポート作成用です。</p>
+                    <div class="section-title">Parameters</div>
+                    <table class="params">
+                        <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+                        <tbody>
+                            <tr><td><code>tag_name</code></td><td>string</td><td>(Path) 取得対象のタグ名</td></tr>
+                            <tr><td><code>hours</code></td><td>int</td><td>(Query) 遡る時間。デフォルト24</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="get-alerts" class="api-card">
+                <div class="api-header">
+                    <span class="method get">GET</span>
+                    <span class="endpoint">/api/v1/alerts/active</span>
+                </div>
+                <div class="api-body">
+                    <p>現在発生中のアラート一覧を取得します。</p>
+                </div>
+            </section>
+
+            <section id="get-health" class="api-card">
+                <div class="api-header">
+                    <span class="method get" style="background: #0288d1;">GET</span>
+                    <span class="endpoint">/api/v1/health</span>
+                </div>
+                <div class="api-body">
+                    <p>システムの稼働状態を返します。Pollerが停止している場合 <code>status: degraded</code> となります。</p>
+                </div>
+            </section>
+
+            <section id="post-ack" class="api-card">
+                <div class="api-header">
+                    <span class="method get" style="background: #f57c00;">POST</span>
+                    <span class="endpoint">/api/v1/alerts/{id}/ack</span>
+                </div>
+                <div class="api-body">
+                    <p>アラームを確認済みにします。SCADA画面で「確認」ボタンを押した際に実行します。</p>
+                    <div class="section-title">JSON Body Example</div>
+                    <pre><code>{ "user": "admin_user" }</code></pre>
+                </div>
+            </section>
+
+        </main>
+
+    </div>
+</body>
+</html>
