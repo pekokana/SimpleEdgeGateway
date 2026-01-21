@@ -39,6 +39,7 @@ def init_db():
         alarm_threshold REAL DEFAULT 100.0,
         alarm_enabled INTEGER DEFAULT 0,
         updated_at DATETIME,
+        UNIQUE(host_id, tag_name),
         FOREIGN KEY(host_id) REFERENCES hosts(id)
     )
     """)

@@ -253,7 +253,7 @@ def gen_yaml():
                 "tag_name": tag_name,
                 "address": tag_addr,
                 "alarm_threshold": 800.0,  # ラダーで1000リセットなので800を閾値に
-                "alarm_enabled": False,     # 負荷軽減のためデフォルトOFF
+                "alarm_enabled": True,     # 負荷軽減のためデフォルトOFF
                 "polling_interval": 1       # 1秒周期
             })
 

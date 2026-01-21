@@ -479,10 +479,13 @@ async def import_yaml(
     file: UploadFile = File(...), 
     overwrite_all: bool = Form(False)  # ★フォームから値を受け取る
 ):
+    # print("yaml import: start")
     content = await file.read()
     data = yaml.safe_load(content)
 
     # 統計用のカウント
+    # print("yaml import: Cnt")
+
     host_count = len(data.get("hosts", []))
     item_count = sum(len(h.get("items", [])) for h in data.get("hosts", []))
 
@@ -490,15 +493,20 @@ async def import_yaml(
         # --- ★全削除モードの処理 ---
         if overwrite_all:
             # 外部キー制約がある場合は削除順序に注意（items -> hosts）
+            # print("yaml import: Delete Start")
+
             await db.execute("DELETE FROM items")
             await db.execute("DELETE FROM hosts")
             await db.execute("DELETE FROM event_logs")
             await db.execute("DELETE FROM history")
             # IDをリセットしたい場合は SQLiteのシーケンスもクリア
             await db.execute("DELETE FROM sqlite_sequence WHERE name IN ('items', 'hosts', 'event_logs', 'history')")
+            # print("yaml import: Delete End")
 
 
         for h in data.get("hosts", []):
+            # print(f"yaml import: host > {h['display_name']} Start")
+
             # ホストの登録 (名前で存在確認)
             cursor = await db.execute(
                 "SELECT id FROM hosts WHERE display_name = ?", (h['display_name'],)
@@ -521,12 +529,13 @@ async def import_yaml(
             
             # アイテムの登録
             for i in h.get("items", []):
+                # print(f"yaml import: host > {h['display_name']} - Item > {i['tag_name']} Start")
                 # タグ名重複時は更新(UPSERT)
                 await db.execute(
                     """INSERT INTO items 
                        (tag_name, address, host_id, alarm_threshold, alarm_enabled, polling_interval) 
                        VALUES (?, ?, ?, ?, ?, ?)
-                       ON CONFLICT(tag_name) DO UPDATE SET
+                       ON CONFLICT(host_id, tag_name) DO UPDATE SET
                        address=excluded.address,
                        host_id=excluded.host_id,
                        alarm_threshold=excluded.alarm_threshold,
@@ -535,6 +544,10 @@ async def import_yaml(
                     (i['tag_name'], i['address'], host_id, 
                      i['alarm_threshold'], 1 if i.get('alarm_enabled', True) else 0, i['polling_interval'])
                 )
+                # print(f"yaml import: host > {h['display_name']} - Item > {i['tag_name']} End")
+
+            # print(f"yaml import: host > {h} - Item End")
+
         await db.commit()
     
     # URLパラメータに結果を付けてリダイレクト

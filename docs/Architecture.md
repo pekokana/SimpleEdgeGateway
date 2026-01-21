@@ -219,17 +219,17 @@ graph TB
 
 ### 核心機能（Core）
 
-* [X] SQLite データベーススキーマ定義
-* [X] Python コアエンジン・ループ実装
+* [x] SQLite データベーススキーマ定義
+* [x] Python コアエンジン・ループ実装
 * [ ] Config Watcher による設定の動的リロード
 
 ### 収集（Ingestion）
 
-* [X] Modbus TCP クライアント実装
+* [x] Modbus TCP クライアント実装
 * [ ] Modbus RTU クライアント実装
 * [ ] Bulk Read (一括読出し) アルゴリズム
-* [X] 通信エラー時の個別フォールバック・ロジック
-* [X] ホスト死活監視（Host Alive Check）
+* [x] 通信エラー時の個別フォールバック・ロジック
+* [x] ホスト死活監視（Host Alive Check）
 
 ### 解析・保存（Processing & Storage）
 
@@ -239,23 +239,23 @@ graph TB
 
 ### 判定・通知（Trigger & Action）
 
-* [X] 構造化トリガー判定エンジン（連続回数判定含む）
+* [x] 構造化トリガー判定エンジン（連続回数判定含む）
 * [ ] ヒステリシス復旧ロジック
-* [X] イベントログ出力アクション
+* [x] イベントログ出力アクション
 * [ ] MQTT 送信アクション（未着手）
 * [ ] メール通知アクション（未着手）
 
 ### ユーザーインターフェース（Web UI）
 
-* [X] 軽量Webサーバー（Flask または FastAPI）の選定・構築
-* [X] 最新値一覧（Live Data）表示画面
-* [ ] イベント・アラーム履歴表示画面
-* [X] 監視設定（Hosts/Items/Triggers）のGUI編集機能
+* [x] 軽量Webサーバー（Flask または FastAPI）の選定・構築
+* [x] 最新値一覧（Live Data）表示画面
+* [x] イベント・アラーム履歴表示画面
+* [x] 監視設定（Hosts/Items/Triggers）のGUI編集機能
 
 ### 外部連携（SCADA Integration）
 
-* [ ] **REST API エンドポイントの実装** (latest / history / alerts)
+* [ ] **REST API エンドポイントの実装** (latest / history / alerts) `50%`
 * [ ] **JSONレスポンスの正規化** (SCADAがパースしやすい構造)
-* [ ] **APIドキュメント（api_spec.md）の作成**
+* [x] **APIドキュメント（api_spec.md）の作成**
 
 

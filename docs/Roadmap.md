@@ -1,6 +1,6 @@
 # SimpleEdgeGateway 実装ロードマップ
 
-**Date:** 2026/01/19
+**Date:** 2026/01/21
 **Author:** Pekokana
 **Status:** Planning / Execution Starts
 **Version:** 1.1
@@ -23,7 +23,7 @@
 
 * [x] **環境構築**: `requirements.txt` の作成（PyYAML, Flask/FastAPI, pymodbus等）。
 * [x] **ディレクトリ構成の作成**: `src/`, `config/`, `data/`, `logs/` の展開。
-* [ ] **設定管理 (`config_loader.py`)**: `config.yaml` を読み込むシングルトンクラスの実装。
+* [x] **設定管理 (`config_loader.py`)**: `config.yaml` を読み込むシングルトンクラスの実装。
 * [x] **DBアクセス基盤 (`db_handler.py`)**: SQLiteの接続管理、WALモード設定、共通CRUD処理の実装。
 * [x] **DB初期化スクリプト (`db_initializer.py`)**: スキーマ定義SQLの実行とサンプルデータの投入。
 
@@ -50,8 +50,8 @@
 
 * [x] **Modbusエンジン (`modbus_poller.py`)**: `pymodbus` を用いたTCP/RTU通信の実装。
 * [ ] **Bulk Read実装**: 同一周期・近接アドレスを一括で読み出す最適化ロジック。
-* [X] **死活監視ロジック**: 通信エラー時のホストダウン判定。
-* [ ] **ハウスキーパー**: `retention_days` に基づく古いデータの自動削除処理。
+* [x] **死活監視ロジック**: 通信エラー時のホストダウン判定。
+* [x] **ハウスキーパー**: `retention_days` に基づく古いデータの自動削除処理。
 
 ### フェーズ 4.5: 運用の高度化（今回見えてきた課題）
 * [ ] **閾値変更への即時追従**: 周期無視の判定ロジック。
@@ -69,24 +69,6 @@
 
 ---
 
-## 3. ディレクトリツリー構造 (振り返り用)
-
-```text
-simple-edge-gateway/
-├── config/              # 設定ファイル (config.yaml)
-├── data/                # SQLite DB (gateway.db)
-├── logs/                # アプリケーションログ (*.log)
-├── src/
-│   ├── common/          # config_loader, db_handler
-│   ├── engine/          # poller, evaluator, housekeeper
-│   ├── web/             # templates, static, routes
-│   └── main.py          # 全スレッドの起動管理
-├── ROADMAP.md           # 本ファイル
-└── Architecture.md      # システム設計図
-
-```
-
----
 
 ## 4. 開発における重要メモ (Tips)
 
