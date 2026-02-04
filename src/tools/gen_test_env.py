@@ -235,7 +235,7 @@ def gen_yaml():
     ## 6. EdgeServerインポートyaml生成
     edge_hosts = []
 
-    for p in range(1, PLC_MAKE_COUNT + 1):
+    for p in range(1, PLC_MAKE_COUNT):
         port = PLC_START_PORT + p - 1
         items = []
 
@@ -247,19 +247,21 @@ def gen_yaml():
                 tag_name = f"P{p}_SYS_Heartbeat"
             else:
                 tag_addr = i
-                tag_name = f"P{p}_DATA_{i:03d}"
+                tag_name = f"P{p}_DATA_{i + 1:03d}"
 
             items.append({
                 "tag_name": tag_name,
                 "address": tag_addr,
                 "alarm_threshold": 800.0,  # ラダーで1000リセットなので800を閾値に
                 "alarm_enabled": True,     # 負荷軽減のためデフォルトOFF
-                "polling_interval": 1       # 1秒周期
+                "polling_interval": 1,     # 1秒周期
+                "io_type": "register",
+                "writable": 1
             })
 
         # ホスト情報の構築
         edge_hosts.append({
-            "display_name": f"LARGE_PLC_{p:02d}",
+            "display_name": f"LARGE_PLC_{p + 1:02d}",
             "ip_address": "127.0.0.1",
             "port": port,
             "unit_id": 1,

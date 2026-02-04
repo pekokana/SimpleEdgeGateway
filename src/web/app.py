@@ -297,6 +297,12 @@ async def get_dashboard_fragment(
                     📈 履歴
                 </a>
             </td>
+            <td>
+                <a href="/operate/{item['tag_name']}" role="button" class="outline secondary"
+                style="font-size: 0.7rem; padding: 2px 8px; margin-bottom: 0;">
+                    🔧 動作確認
+                </a>
+            </td>
         </tr>
         """
     
@@ -461,7 +467,9 @@ async def export_yaml():
                     "address": item["address"],
                     "alarm_threshold": item["alarm_threshold"],
                     "alarm_enabled": bool(item["alarm_enabled"]),
-                    "polling_interval": item["polling_interval"]
+                    "polling_interval": item["polling_interval"],
+                    "io_type": item["io_type"],
+                    "writable": item["writable"]
                 })
             config_data["hosts"].append(host_dict)
 
@@ -533,16 +541,18 @@ async def import_yaml(
                 # タグ名重複時は更新(UPSERT)
                 await db.execute(
                     """INSERT INTO items 
-                       (tag_name, address, host_id, alarm_threshold, alarm_enabled, polling_interval) 
-                       VALUES (?, ?, ?, ?, ?, ?)
+                       (tag_name, address, host_id, alarm_threshold, alarm_enabled, polling_interval, io_type, writable) 
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                        ON CONFLICT(host_id, tag_name) DO UPDATE SET
                        address=excluded.address,
                        host_id=excluded.host_id,
                        alarm_threshold=excluded.alarm_threshold,
                        alarm_enabled=excluded.alarm_enabled,
-                       polling_interval=excluded.polling_interval""",
+                       polling_interval=excluded.polling_interval,
+                       io_type=excluded.writable,
+                       writable=excluded.writable""",
                     (i['tag_name'], i['address'], host_id, 
-                     i['alarm_threshold'], 1 if i.get('alarm_enabled', True) else 0, i['polling_interval'])
+                     i['alarm_threshold'], 1 if i.get('alarm_enabled', True) else 0, i['polling_interval'], i['io_type'], i['writable'])
                 )
                 # print(f"yaml import: host > {h['display_name']} - Item > {i['tag_name']} End")
 
@@ -586,4 +596,24 @@ async def cleanup_old_data():
 @app.get("/api_docs", response_class=HTMLResponse)
 async def api_docs_page(request: Request):
     return templates.TemplateResponse("api_docs.html", {"request": request})
+
+@app.get("/operate/{tag_name}", response_class=HTMLResponse)
+async def operate_page(request: Request, tag_name: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute("""
+            SELECT i.*, h.display_name as host_name
+            FROM items i
+            JOIN hosts h ON i.host_id = h.id
+            WHERE i.tag_name = ?
+        """, (tag_name,))
+        item = await cursor.fetchone()
+
+    if not item:
+        return HTMLResponse("Item not found", status_code=404)
+
+    return templates.TemplateResponse("operate.html", {
+        "request": request,
+        "item": item
+    })
 

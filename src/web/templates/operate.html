@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>PLC操作 | {{ item.tag_name }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</head>
+<body class="container">
+  <nav>
+    <ul><li><strong>SimpleEdgeGateway</strong></li></ul>
+    <ul>
+      <li><a href="/">ダッシュボードへ戻る</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <h3>PLC操作: {{ item.tag_name }}</h3>
+
+    <article>
+      <p>現在値: <strong>{{ item.last_value }}</strong></p>
+      <p>アドレス: {{ item.address }} / 種別: {{ item.io_type }}</p>
+
+      {% if item.io_type == 'coil' %}
+        <button onclick="writeCoil(true)">ON</button>
+        <button class="secondary" onclick="writeCoil(false)">OFF</button>
+      {% else %}
+        <input type="number" id="value" placeholder="設定値">
+        <button onclick="writeRegister()">設定</button>
+      {% endif %}
+    </article>
+
+    <h4>操作履歴</h4>
+    <div id="history" hx-get="/plc/write_history?tag_name={{ item.tag_name }}" hx-trigger="load, every 5s">
+      読み込み中...
+    </div>
+  </main>
+
+<script>
+async function writeCoil(val) {
+  await fetch(`/api/v1/plc/write/coil?tag_name={{ item.tag_name }}&value=${val}`, { method: "POST" });
+}
+
+async function writeRegister() {
+  const value = document.getElementById("value").value;
+  await fetch(`/api/v1/plc/write/register?tag_name={{ item.tag_name }}&value=${value}`, { method: "POST" });
+}
+</script>
+</body>
+</html>
